@@ -27,27 +27,31 @@ int isRunning=1;
 node *head=NULL;
 int totalStudent=0;
 //functions
-void menu();
+
 void loadDatabase();
 void updateDatabase();
-void menu();
+
 void addStudent();
 void editStudent(int);
 void showAllStudents();
 int searchStudent(int);
-void deleteStudent();
+void deleteStudent(int);
+void deleteAllStudent();
+
+void menu();
 void exitProgram();
-void userManual();
 void goBackOrExit();
 void gotoxy();
 void loadDummyData();
+int isUniqueId(int);
 
 
 
 int main(){
 	int option;
 	int foundIndex,id;			//for searching purpose
-	loadDummyData();
+	loadDummyData();			//sample data 
+	char sure;					//for confirming deletion
 	
 	while(isRunning){
 		menu();
@@ -65,6 +69,11 @@ int main(){
 	            break;
 	        case 2:
 	            system("cls");
+	            if(head==NULL){
+	            	printf("\n\t\t!!Empty Database!!\n\n");
+	            	goBackOrExit();
+	            	break;
+				}
 	            printf("\n\t\t **** All Students ****\n\n");
 	            showAllStudents();
 	            goBackOrExit();
@@ -104,6 +113,65 @@ int main(){
 	            }
 	            goBackOrExit();
 	            break;
+	            
+		    case 5:
+	            system("cls");
+	            printf("\n\t\t **** Delete a Student ****\n\n");
+	            printf(" Enter The Student ID: ");
+	            scanf("%d",&id);
+	
+	            foundIndex = searchStudent(id);
+	
+	            if(foundIndex<0)
+	            {
+	             	printf(" No Student Found\n\n");
+	                goBackOrExit();   
+	            }
+	            else
+	            {
+	                
+	                sure = 'N';
+	                getchar();
+	                printf("\n\n");
+	                printf(" Are you sure want to delete this student? (Y/N): ");
+	                scanf("%c",&sure);
+	
+	                if(sure == 'Y' || sure == 'y')
+	                {
+	                    deleteStudent(foundIndex);
+	                }
+	                else
+	                {
+	                    printf(" Your Data is Safe.\n\n");
+	                    goBackOrExit();
+	                }
+	
+	            }
+	
+	            break;
+	            
+	    case 6:
+            sure = 'N';
+            getchar();
+            system("cls");
+            printf("\n\t\t **** Delete ALL Students ****\n\n");
+
+            printf(" Are you sure want to delete all the students? (Y/N): ");
+            scanf("%c",&sure);
+            if(sure == 'Y' || sure == 'y')
+            {
+                deleteAllStudent();
+            }
+            else
+            {
+                printf(" Your Data is Safe.\n\n");
+                goBackOrExit();
+            }
+            break;
+        default:
+            printf("Please enter the valid option!!");
+            break;
+        
 			
 		}
 	}
@@ -135,7 +203,8 @@ void loadDummyData(){
 	newNode3->phone=98912;
 	newNode3->next=head;
 	head=newNode3;
-
+	
+	totalStudent=3;
 }
 
 
@@ -149,7 +218,6 @@ void menu(){
     printf("\t\t[4] Edit A student.\n");
     printf("\t\t[5] Delete A student.\n");
     printf("\t\t[6] Delete All students.\n");
-    printf("\t\t[7] User Guideline.\n");
     printf("\t\t[0] Exit the Program.\n");
     printf("\t\t=======================\n");
     printf("\t\tEnter The Choice: ");
@@ -158,6 +226,7 @@ void menu(){
 void exitProgram()
 {
     system("cls");
+    updateDatabase();
     int i;
     char ThankYou[100]     = " ========= Thank You =========\n";
     char ExittingProgram[100]   = " ========= Exitting Program ======\n";
@@ -181,10 +250,20 @@ void addStudent(){
 	int studentId;
 	char studentName[30];
 	int phone;
+	int valid=0;
 	
+	while(!valid){
+		//system("cls");
+		printf("Enter the id of a student:");
+		scanf("%d",&studentId);
+		
+		if(isUniqueId(studentId)!=1){
+			printf("This student ID already Exists!!\n\n");
+		}
+		else
+			valid++;	
+	}
 
-	printf("Enter the id of a student:");
-	scanf("%d",&studentId);
 	printf("Enter The Name: ");
     scanf("%49s", studentName); 
 
@@ -269,6 +348,7 @@ void showAllStudents(){
 		j+=2;
     }
     printf("\n");
+    printf("Total Students: %d \n\n",totalStudent);
 }
 
 
@@ -321,4 +401,79 @@ void editStudent(int id){
 
 }
 
+
+
+void deleteStudent(int id){
+	node *temp=head;
+	node*prev;
+	
+	while(temp->id!=id){
+		prev=temp;
+		temp=temp->next;
+	}
+	prev->next=temp->next;
+	free(temp);
+	
+	totalStudent--;
+	printf(" Student Deleted Successfully.\n\n");
+    goBackOrExit();
+}
+
+void deleteAllStudent(){
+	totalStudent=0;
+	node* temp=head;
+	
+	while(temp!=NULL){
+		head=temp->next;
+		free(temp);
+		temp=head;
+	}
+	printf(" All Students Deleted Successfully.\n\n");
+    goBackOrExit();
+}
+
+int isUniqueId(int id){
+	int isUnique=1;
+	node *temp=head;
+	
+	while(temp!=NULL){
+		if (temp->id==id){
+			isUnique--;
+		}
+		temp=temp->next;
+	}
+	
+	return isUnique;
+}
+// Function to write student data to the file
+void writeStudentToFile(FILE* file, node* temp) {
+    fwrite(&temp->id, sizeof(int), 1, file);
+    fwrite(temp->name, sizeof(char), sizeof(temp->name), file);
+    fwrite(&temp->phone, sizeof(char), 1, file);						//sizeof(temp->phone) if character
+}
+
+// Function to serialize the linked list and write it to a file
+void updateDatabase() {
+    FILE* file = fopen("student.bin", "wb");
+    if (file != NULL) {
+        node* temp = head;
+        while (temp != NULL) {
+            writeStudentToFile(file, temp);
+            temp=temp->next;
+        }
+        // Write a delimiter to indicate the end of the list
+        int delimiter = -1;
+        fwrite(&delimiter, sizeof(int), 1, file);
+        fclose(file);
+    } else {
+        printf("Failed to update database.\n");
+    }
+}
+
+
+void loadDatabase(){
+	FILE *file=fopen("student.bin","rb");
+	
+	while(fread(head,sizeof))
+}
 
